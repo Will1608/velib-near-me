@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Closest stations</title>
+</head>
+<body>
+    <h1>Velib</h1>
+    <ul>
+        {{range .Stations}}
+        <li>{{.Distance}} m {{.NumDocksAvailable}} spaces available {{.NumBikesAvailable}} bikes remaining  at <span>{{.Name}}</span></li>
+        {{end}}
+    </ul>
+</body>
+</html>

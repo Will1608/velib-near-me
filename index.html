@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find me a station</title>
+</head>
+<body>
+    <h1>Velib</h1>
+    <form action="/stations/closest" method="GET">
+        <input type="hidden" id="latitude" name="latitude" value=""/>
+        <input type="hidden" id="longitude" name="longitude" value=""/>
+        <fieldset>
+            <legend >I'm :</legend>
+            <label for="returning">returning</label>
+            <input type="radio" id="returning" name="action" value="returning"/>
+            <label for="looking-for">looking for</label>
+            <input type="radio" id="looking-for" name="action" value="searching"/>    
+        </fieldset>
+
+        <input type="submit" value="find closest"/>
+    </form>
+</body>
+
+<script>
+    let latitude = document.getElementById("latitude")
+    let showLocation = document.getElementById("longitude")
+
+    navigator.geolocation.getCurrentPosition((position)=> {
+        latitude.value = position.coords.latitude
+        longitude.value = position.coords.longitude
+     })
+
+</script>
+</html>
