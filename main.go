@@ -64,7 +64,8 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 	if v, ok := query["latitude"]; ok && len(v) != 0 {
 		lat, err := strconv.ParseFloat(v[0], 64)
 		if err != nil {
-			panic(err)
+			http.Error(w, "something happened", 500)
+			return
 		}
 		queryLat = lat
 	}
@@ -72,7 +73,8 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 	if v, ok := query["longitude"]; ok && len(v) != 0 {
 		lon, err := strconv.ParseFloat(v[0], 64)
 		if err != nil {
-			panic(err)
+			http.Error(w, "something happened", 500)
+			return
 		}
 		queryLon = lon
 	}
@@ -85,7 +87,8 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json")
 	if err != nil {
-		panic(err)
+		http.Error(w, "something happened", 500)
+		return
 	}
 	defer req.Body.Close()
 
@@ -124,7 +127,8 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.ParseFiles("closest-stations.html")
 	if err != nil {
-		panic(err)
+		http.Error(w, "something happened", 500)
+		return
 	}
 
 	err = tmpl.Execute(w, struct {
@@ -133,14 +137,16 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 		Stations: closestStations,
 	})
 	if err != nil {
-		panic(err)
+		http.Error(w, "something happened", 500)
+		return
 	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("index.html")
 	if err != nil {
-		panic(err)
+		http.Error(w, "something happened", 500)
+		return
 	}
 
 	tmpl.Execute(w, nil)
