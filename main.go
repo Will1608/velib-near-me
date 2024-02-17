@@ -119,12 +119,6 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	// query := r.URL.Query()
-	// var returning bool
-	// if v, ok := query["action"]; ok && len(v) != 0 {
-	// 	returning = v[0] == "retruning"
-	// }
-
 	tmpl, err := template.ParseFiles("closest-stations.html")
 	if err != nil {
 		http.Error(w, "something happened", 500)

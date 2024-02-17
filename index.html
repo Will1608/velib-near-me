@@ -18,18 +18,27 @@
             <input type="radio" id="looking-for" name="action" value="searching"/>    
         </fieldset>
 
-        <input type="submit" value="find closest"/>
+        <input id="submit" type="submit" value="find closest" disabled="true"/>
     </form>
 </body>
 
 <script>
-    let latitude = document.getElementById("latitude")
-    let showLocation = document.getElementById("longitude")
+    let latitude = document.getElementById("latitude"),
+     longitude = document.getElementById("longitude"),
+     submit = document.getElementById("submit")
 
-    navigator.geolocation.getCurrentPosition((position)=> {
+     navigator.geolocation.getCurrentPosition((position)=> {
         latitude.value = position.coords.latitude
         longitude.value = position.coords.longitude
      })
+
+    let hasLatLonInterval = setInterval(() => latitude.value && longitude.value && hasLatLon(), 300)
+
+    const hasLatLon = () => {
+        clearInterval(hasLatLonInterval)
+        submit.disabled = false
+    }
+   
 
 </script>
 </html>
