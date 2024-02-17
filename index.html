@@ -3,6 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        form {
+            display:flex;
+            flex-direction:column;
+            align-items: center;
+            gap:2rem;
+        }
+        h1 {
+            margin-inline: auto;
+            width: fit-content;
+        }
+    </style>
     <title>Find me a station</title>
 </head>
 <body>
@@ -12,10 +27,10 @@
         <input type="hidden" id="longitude" name="longitude" value=""/>
         <fieldset>
             <legend >I'm :</legend>
+            <input type="radio" id="returning" name="action" value="returning" checked/>
             <label for="returning">returning</label>
-            <input type="radio" id="returning" name="action" value="returning"/>
+            <input type="radio" id="looking-for" name="action" value="searching"/> 
             <label for="looking-for">looking for</label>
-            <input type="radio" id="looking-for" name="action" value="searching"/>    
         </fieldset>
 
         <input id="submit" type="submit" value="find closest" disabled="true"/>
@@ -30,7 +45,7 @@
      navigator.geolocation.getCurrentPosition((position)=> {
         latitude.value = position.coords.latitude
         longitude.value = position.coords.longitude
-     })
+     }, () => null, {enableHighAccuracy: true})
 
     let hasLatLonInterval = setInterval(() => latitude.value && longitude.value && hasLatLon(), 300)
 

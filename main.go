@@ -5,6 +5,7 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -61,19 +62,23 @@ func refreshStationInformation() error {
 func nearestStations(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	var queryLat, queryLon float64
-	if v, ok := query["latitude"]; ok && len(v) != 0 {
-		lat, err := strconv.ParseFloat(v[0], 64)
+	if query.Get("latitude") != "" {
+		lat, err := strconv.ParseFloat(query.Get("latitude"), 64)
 		if err != nil {
-			http.Error(w, "something happened", 500)
+			http.Error(w, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
+			log.Print(err)
 			return
 		}
 		queryLat = lat
 	}
 
-	if v, ok := query["longitude"]; ok && len(v) != 0 {
-		lon, err := strconv.ParseFloat(v[0], 64)
+	if query.Get("longitude") != "" {
+		lon, err := strconv.ParseFloat(query.Get("longitude"), 64)
 		if err != nil {
-			http.Error(w, "something happened", 500)
+			http.Error(w, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
+			log.Print(err)
 			return
 		}
 		queryLon = lon
@@ -87,7 +92,9 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json")
 	if err != nil {
-		http.Error(w, "something happened", 500)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		log.Print(err)
 		return
 	}
 	defer req.Body.Close()
@@ -121,17 +128,28 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.ParseFiles("closest-stations.html")
 	if err != nil {
-		http.Error(w, "something happened", 500)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		log.Print(err)
 		return
 	}
 
+	var returning bool
+	if query.Get("action") == "returning" {
+		returning = true
+	}
+
 	err = tmpl.Execute(w, struct {
-		Stations []Station
+		Stations  []Station
+		Returning bool
 	}{
-		Stations: closestStations,
+		Stations:  closestStations,
+		Returning: returning,
 	})
 	if err != nil {
-		http.Error(w, "something happened", 500)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		log.Print(err)
 		return
 	}
 }
@@ -139,11 +157,19 @@ func nearestStations(w http.ResponseWriter, r *http.Request) {
 func index(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("index.html")
 	if err != nil {
-		http.Error(w, "something happened", 500)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		log.Print(err)
 		return
 	}
 
-	tmpl.Execute(w, nil)
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
 }
 
 var stations []Station
