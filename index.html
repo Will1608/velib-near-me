@@ -42,10 +42,12 @@
      longitude = document.getElementById("longitude"),
      submit = document.getElementById("submit")
 
-     navigator.geolocation.getCurrentPosition((position)=> {
+    getPosition = () => navigator.geolocation.getCurrentPosition((position)=> {
         latitude.value = position.coords.latitude
         longitude.value = position.coords.longitude
-     }, () => null, {enableHighAccuracy: true})
+    }, (err) => err.code === 3 && this.getPosition(), { enableHighAccuracy: true, timeout: 1000 })
+    
+    this.getPosition()
 
     let hasLatLonInterval = setInterval(() => latitude.value && longitude.value && hasLatLon(), 300)
 
