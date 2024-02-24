@@ -1,30 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
-	"errors"
-	"io"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"strings"
+	"time"
+
+	_ "github.com/lib/pq"
 )
-
-var Stations []Station
-
-func refreshStationInformation() error {
-	r, err := http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_information.json")
-	if err != nil {
-		panic(err)
-	}
-	defer r.Body.Close()
-
-	stationInformation, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	return os.WriteFile("station_information.json", stationInformation, 0600)
-}
 
 func handleHttpError(w http.ResponseWriter, err error) {
 	http.Error(w, http.StatusText(http.StatusInternalServerError),
@@ -32,31 +18,74 @@ func handleHttpError(w http.ResponseWriter, err error) {
 	log.Print(err)
 }
 
-func main() {
-	if os.Getenv("REFRESH_STATIONS") != "" {
-		err := refreshStationInformation()
-		if err != nil {
-			panic(err)
+var db *sql.DB
+
+func refreshStations() error {
+	var data struct {
+		Data struct {
+			Stations []Station
 		}
 	}
 
-	f, err := os.ReadFile("station_information.json")
-	if errors.Is(err, os.ErrNotExist) {
-		panic(errors.New("please re-run with REFRESH_STATIONS env var"))
-	} else if err != nil {
-		panic(err)
+	// station information
+	r, err := http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_information.json")
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	dec := json.NewDecoder(r.Body)
+	err = dec.Decode(&data)
+	if err != nil {
+		return err
 	}
 
-	var rawStations struct {
-		Data struct{ Stations []Station }
+	// station status
+	r, err = http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json")
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	dec = json.NewDecoder(r.Body)
+	err = dec.Decode(&data)
+	if err != nil {
+		return err
 	}
 
-	err = json.Unmarshal(f, &rawStations)
+	queryString := "INSERT INTO stations (station_id, name, lat, lon, bike_count, dock_count, updated_at) VALUES "
+	for _, station := range data.Data.Stations {
+		queryString += fmt.Sprintf("(%d, '%s', %f, %f, %d, %d, NOW()),", station.StationId, strings.Replace(station.Name, "'", "''", -1), station.Lat, station.Lon, station.BikeCount, station.DockCount)
+	}
+
+	queryString = strings.TrimRight(queryString, ",") + " ON CONFLICT (station_id) DO UPDATE SET bike_count = EXCLUDED.bike_count, dock_count = EXCLUDED.dock_count, updated_at = EXCLUDED.updated_at"
+
+	_, err = db.Exec(queryString)
+	return err
+}
+
+func main() {
+	var err error
+	db, err = sql.Open("postgres", "postgresql://postgres@/velib?host=/var/run/postgresql/")
+
 	if err != nil {
 		panic(err)
 	}
 
-	Stations = rawStations.Data.Stations
+	// update data periodically
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				err := refreshStations()
+				if err != nil {
+					log.Print(err)
+				}
+			}
+		}
+	}()
 
 	stationsController := StationsController{}
 	indexController := IndexController{}

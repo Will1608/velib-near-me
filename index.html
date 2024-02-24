@@ -23,8 +23,8 @@
 <body>
     <h1>Velib</h1>
     <form action="/stations/closest" method="GET">
-        <input type="hidden" id="latitude" name="latitude" value=""/>
-        <input type="hidden" id="longitude" name="longitude" value=""/>
+        <input type="hidden" id="lat" name="lat" value=""/>
+        <input type="hidden" id="lon" name="lon" value=""/>
         <fieldset>
             <legend >I'm :</legend>
             <input type="radio" id="returning" name="action" value="returning" checked/>
@@ -38,18 +38,18 @@
 </body>
 
 <script>
-    let latitude = document.getElementById("latitude"),
-     longitude = document.getElementById("longitude"),
+    let lat = document.getElementById("lat"),
+     lon = document.getElementById("lon"),
      submit = document.getElementById("submit")
 
     getPosition = () => navigator.geolocation.getCurrentPosition((position)=> {
-        latitude.value = position.coords.latitude
-        longitude.value = position.coords.longitude
+        lat.value = position.coords.latitude
+        lon.value = position.coords.longitude
     }, (err) => err.code === 3 && this.getPosition(), { enableHighAccuracy: true, timeout: 1000 })
     
     this.getPosition()
 
-    let hasLatLonInterval = setInterval(() => latitude.value && longitude.value && hasLatLon(), 300)
+    let hasLatLonInterval = setInterval(() => lat.value && lon.value && hasLatLon(), 300)
 
     const hasLatLon = () => {
         clearInterval(hasLatLonInterval)

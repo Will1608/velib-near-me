@@ -1,0 +1,1 @@
+CREATE UNLOGGED TABLE IF NOT EXISTS stations (id SERIAL PRIMARY KEY, station_id bigint NOT NULL UNIQUE, name text NOT NULL, lat double precision NOT NULL, lon double precision NOT NULL, bike_count int NOT NULL DEFAULT 0, dock_count int NOT NULL DEFAULT 0, updated_at time WITH time zone);

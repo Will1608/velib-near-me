@@ -18,7 +18,7 @@
     <h1>Velib</h1>
     <ul>
         {{range .Stations}}
-        <li>{{.Name}} {{.Distance}} m {{if $.Returning}} {{.NumDocksAvailable}} spaces {{else}} {{.NumBikesAvailable}} bikes {{end}}</li>
+	<li>{{.Name}} {{.Distance}} m {{if .DockCount}} {{.DockCount}} spaces {{else}} {{.BikeCount}} bikes {{end}}</li>
         {{end}}
     </ul>
 </body>

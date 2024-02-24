@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"database/sql"
 	"html/template"
 	"net/http"
 	"slices"
@@ -11,67 +11,54 @@ import (
 type StationsController struct{}
 
 func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+	params := r.URL.Query()
+	action := params.Get("action")
 
-	var queryLat, queryLon float64
-
-	if query.Get("latitude") != "" {
-		lat, err := strconv.ParseFloat(query.Get("latitude"), 64)
-		if err != nil {
-			defer handleHttpError(w, err)
-			return
-		}
-		queryLat = lat
+	var rows *sql.Rows
+	var err error
+	if action == "returning" {
+		rows, err = db.Query("SELECT name, lat, lon, dock_count FROM stations WHERE dock_count > 0")
+	} else {
+		rows, err = db.Query("SELECT name, lat, lon, bike_count FROM stations WHERE bike_count > 0")
 	}
-
-	if query.Get("longitude") != "" {
-		lon, err := strconv.ParseFloat(query.Get("longitude"), 64)
-		if err != nil {
-			defer handleHttpError(w, err)
-			return
-		}
-		queryLon = lon
-	}
-
-	stationsMap := make(map[string]Station)
-	for _, station := range Stations {
-		station.Distance = Haversine(queryLat, queryLon, station.Lat, station.Lon)
-		stationsMap[station.StationCode] = station
-	}
-
-	req, err := http.Get("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json")
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
 	}
-	defer req.Body.Close()
 
-	var stationStatus struct{ Data struct{ Stations []Station } }
-	decoder := json.NewDecoder(req.Body)
-	decoder.Decode(&stationStatus)
-
-	for _, station := range stationStatus.Data.Stations {
-		if s, ok := stationsMap[station.StationCode]; ok {
-			s.NumBikesAvailable = station.NumBikesAvailable
-			s.NumDocksAvailable = station.NumDocksAvailable
-			stationsMap[station.StationCode] = s
-		}
-	}
-
-	var closestStations []Station
-	for _, station := range stationsMap {
-		if station.Distance < 500 {
-			closestStations = append(closestStations, station)
-		}
-	}
-
-	slices.SortFunc(closestStations, func(a Station, b Station) int {
-		if a.Distance >= b.Distance {
-			return 1
+	var stations []Station
+	for rows.Next() {
+		var station Station
+		var err error
+		if action == "returning" {
+			err = rows.Scan(&station.Name, &station.Lat, &station.Lon, &station.DockCount)
 		} else {
-			return -1
+			err = rows.Scan(&station.Name, &station.Lat, &station.Lon, &station.BikeCount)
 		}
-	})
+		if err != nil {
+			defer handleHttpError(w, err)
+			return
+		}
+
+		stations = append(stations, station)
+	}
+
+	lat, err := strconv.ParseFloat(params.Get("lat"), 64)
+	if err != nil {
+		defer handleHttpError(w, err)
+		return
+	}
+
+	lon, err := strconv.ParseFloat(params.Get("lon"), 64)
+	if err != nil {
+		defer handleHttpError(w, err)
+		return
+	}
+
+	for i, station := range stations {
+		stations[i].Distance = Haversine(lat, lon, station.Lat, station.Lon)
+	}
+	slices.SortFunc(stations, func(a Station, b Station) int { return a.Distance - b.Distance })
 
 	tmpl, err := template.ParseFiles("closest-stations.html")
 	if err != nil {
@@ -79,19 +66,9 @@ func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var returning bool
-	if query.Get("action") == "returning" {
-		returning = true
-	}
-
-	err = tmpl.Execute(w, struct {
-		Stations  []Station
-		Returning bool
-	}{
-		Stations:  closestStations,
-		Returning: returning,
-	})
+	tmpl.Execute(w, struct{ Stations []Station }{Stations: stations[:5]})
 	if err != nil {
-		handleHttpError(w, err)
+		defer handleHttpError(w, err)
+		return
 	}
 }
