@@ -7,7 +7,7 @@ import (
 
 type Station struct {
 	Id        int
-	StationId big.Int `json:"station_id"`
+	StationId *big.Int `json:"station_id"`
 	Name      string
 	Lat       float64
 	Lon       float64
