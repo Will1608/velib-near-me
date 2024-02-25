@@ -66,7 +66,7 @@ func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tmpl.Execute(w, struct{ Stations []Station }{Stations: stations[:5]})
+	tmpl.Execute(w, struct{ Stations []Station }{Stations: stations[:min(5, len(stations))]})
 	if err != nil {
 		defer handleHttpError(w, err)
 		return

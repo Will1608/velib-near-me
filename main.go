@@ -67,7 +67,6 @@ func refreshStations() error {
 func main() {
 	var err error
 	db, err = sql.Open("postgres", "postgresql://postgres@/velib?host=/var/run/postgresql/")
-
 	if err != nil {
 		panic(err)
 	}
