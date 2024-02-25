@@ -1,10 +1,13 @@
 package main
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 type Station struct {
 	Id        int
-	StationId int `json:"station_id"`
+	StationId big.Int `json:"station_id"`
 	Name      string
 	Lat       float64
 	Lon       float64
