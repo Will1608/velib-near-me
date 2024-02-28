@@ -7,7 +7,7 @@
         body {
             font-family: sans-serif;
         }
-        form {
+        form, .map-container {
             display:flex;
             flex-direction:column;
             align-items: center;
@@ -17,10 +17,17 @@
             margin-inline: auto;
             width: fit-content;
         }
+	#map {
+		margin: 2rem;
+		height: 20rem;
+		width: 20rem;
+	}
     </style>
+<link rel="stylesheet" href="/files/leaflet.css"/>
     <title>Find me a station</title>
 </head>
 <body>
+	<script src="/files/leaflet.js"></script>
     <h1>Velib</h1>
     <form action="/stations/closest" method="GET">
         <input type="hidden" id="lat" name="lat" value=""/>
@@ -35,6 +42,9 @@
 
         <input id="submit" type="submit" value="find closest" disabled="true"/>
     </form>
+    <div class="map-container">
+	<div id="map"></div>
+    </div>
 </body>
 
 <script>
@@ -45,7 +55,7 @@
     getPosition = () => navigator.geolocation.getCurrentPosition((position)=> {
         lat.value = position.coords.latitude
         lon.value = position.coords.longitude
-    }, (err) => err.code === 3 && this.getPosition(), { enableHighAccuracy: true, timeout: 1000 })
+    }, (err) => err.code === 3 && this.getPosition(), { enableHighAccuracy: true, timeout: 3000 })
     
     this.getPosition()
 
@@ -54,8 +64,14 @@
     const hasLatLon = () => {
         clearInterval(hasLatLonInterval)
         submit.disabled = false
-    }
-   
 
-</script>
+    var map = L.map("map").setView([lat.value,lon.value], 15)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    	maxZoom: 19,
+    	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	}).addTo(map)
+
+    }
+
+    </script>
 </html>

@@ -99,9 +99,11 @@ func main() {
 
 	stationsController := StationsController{}
 	indexController := IndexController{}
+	filesController := FilesController{}
 
 	http.HandleFunc("GET /{$}", indexController.Show)
 	http.HandleFunc("GET /stations/closest", stationsController.ListClosest)
+	http.HandleFunc("GET /files/{name}", filesController.Show)
 
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
