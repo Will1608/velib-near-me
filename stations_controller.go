@@ -46,8 +46,12 @@ func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) 
 	}
 	slices.SortFunc(stations, func(a Station, b Station) int { return a.Distance - b.Distance })
 
+	if len(stations) >= 5 {
+		stations = stations[:5]
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(stations[:5])
+	err = json.NewEncoder(w).Encode(stations)
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
