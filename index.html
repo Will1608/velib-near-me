@@ -1,78 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-        form, .map-container {
-            display:flex;
-            flex-direction:column;
-            align-items: center;
-            gap:2rem;
-        }
-        h1 {
-            margin-inline: auto;
-            width: fit-content;
-        }
-	#map {
-		margin: 2rem;
-		height: 20rem;
-		width: 20rem;
-	}
-    </style>
-<link rel="stylesheet" href="/files/leaflet.css"/>
-    <title>Find me a station</title>
-    <link rel="icon" href="/files/velib.png" /> 
-</head>
-<body>
-	<script src="/files/leaflet.js"></script>
-    <h1>Velib</h1>
-    <form action="/stations/closest" method="GET">
-        <input type="hidden" id="lat" name="lat" value=""/>
-        <input type="hidden" id="lon" name="lon" value=""/>
-        <fieldset>
-            <legend >I'm :</legend>
-            <input type="radio" id="returning" name="action" value="returning" checked/>
-            <label for="returning">returning</label>
-            <input type="radio" id="looking-for" name="action" value="searching"/> 
-            <label for="looking-for">looking for</label>
-        </fieldset>
+	<head>
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <style>
+	        body {
+	            font-family: sans-serif;
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    gap: 1rem;
+	        }
+		#map {
+			height: 20rem;
+			width: 20rem;
+		}
+		.station-pin {
+		font-weight: bolder;
+		font-size: x-small;
+		padding: 6px;
+		border-radius: 50%;
+		background-color: white;
+		border: 2px solid black;
+		text-align: center;
+		}
+	    </style>
+	    <link rel="stylesheet" href="/files/leaflet.css"/>
+	    <title>Find me a station</title>
+	    <link rel="icon" href="/files/velib.png" /> 
+	</head>
+	<body>
+		<script src="/files/leaflet.js"></script>
+	        <h1>Velib</h1>
+	        <fieldset>
+	            <legend >I'm :</legend>
+	            <input type="radio" id="returning" name="action" value="returning" checked/>
+	            <label for="returning">returning</label>
+	            <input type="radio" id="searching" name="action" value="searching"/> 
+	            <label for="searching">looking for</label>
+	        </fieldset>
+		<button id="refresh-btn">refresh</button>
+		<div class="map-container"> <div id="map"></div>
+	</body>
+	<script>
+		let map = null,
+		 parisLatLon = [48.864716, 2.349014],
+		stations = [],
+		position = [],
+		returning = document.getElementById("returning"),
+		searching = document.getElementById("searching"),
+		refresh = document.getElementById("refresh-btn")
 
-        <input id="submit" type="submit" value="find closest" disabled="true"/>
-    </form>
-    <div class="map-container">
-	<div id="map"></div>
-    </div>
-</body>
+ 		const fetch = () => {
+				let xhr = new XMLHttpRequest()
+				xhr.open("GET", `/stations/closest?latitude=${position[0]}&longitude=${position[1]}`)
+				xhr.onload = () => {
+					stations = JSON.parse(xhr.response)
+					localMap()
+				}
+				xhr.send()
+			}	
 
-<script>
-    let lat = document.getElementById("lat"),
-     lon = document.getElementById("lon"),
-     submit = document.getElementById("submit")
+		const initMap = () => {
+			map = L.map('map', {
+    				center: parisLatLon,
+    				zoom: 11
+			})
+			L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		    		maxZoom: 19,
+		    		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+			}).addTo(map)
+		}
 
-    getPosition = () => navigator.geolocation.getCurrentPosition((position)=> {
-        lat.value = position.coords.latitude
-        lon.value = position.coords.longitude
-    }, (err) => err.code === 3 && this.getPosition(), { enableHighAccuracy: true, timeout: 3000 })
-    
-    this.getPosition()
+		const localMap = () => {
+			let action = returning.checked ? "returning": "searching"
+			map.setView(position, 15)
+			L.marker(position, {icon: L.icon({
+		    						iconUrl: '/files/pin.png',
+		    						iconSize: [32, 32]
+								})
+							}
+				).addTo(map)
+			stations.forEach((station) =>  L.marker([station.Lat, station.Lon], {icon: L.divIcon({html: `<div>${action==="returning"? station.numDocksAvailable: station.numBikesAvailable}</div>`, className:"station-pin"})}).addTo(map))
+		}
 
-    let hasLatLonInterval = setInterval(() => lat.value && lon.value && hasLatLon(), 300)
+		const getPosition = () => {
+			refresh.disabled = true
+			navigator.geolocation.getCurrentPosition((pos)=> {
+				position = [pos.coords.latitude, pos.coords.longitude]
+			    	fetch()
+			    	refresh.disabled = false
+				}, (err) => err.code === 3 && getPosition(), { enableHighAccuracy: true, timeout: 3000 })
+		}
 
-    const hasLatLon = () => {
-        clearInterval(hasLatLonInterval)
-        submit.disabled = false
-
-    var map = L.map("map").setView([lat.value,lon.value], 15)
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    	maxZoom: 19,
-    	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	}).addTo(map)
-
-    }
-
-    </script>
+		refresh.addEventListener("click", getPosition)
+		returning.addEventListener("change",!refresh.disabled && localMap) 
+		searching.addEventListener("change",!refresh.disabled && localMap) 
+			
+		initMap()	
+		getPosition()
+	</script>
 </html>

@@ -13,7 +13,7 @@ func (c *FilesController) Show(w http.ResponseWriter, r *http.Request) {
 	filename := r.PathValue("name")
 	var f []byte
 	var err error
-	if filename == "leaflet.css" || filename == "leaflet.js" || filename == "velib.png" {
+	if filename == "leaflet.css" || filename == "leaflet.js" || filename == "velib.png" || filename == "pin.png" {
 		f, err = os.ReadFile(filename)
 		if err != nil {
 			defer handleHttpError(w, err)

@@ -1,8 +1,7 @@
 package main
 
 import (
-	"database/sql"
-	"html/template"
+	"encoding/json"
 	"net/http"
 	"slices"
 	"strconv"
@@ -11,16 +10,7 @@ import (
 type StationsController struct{}
 
 func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	action := params.Get("action")
-
-	var rows *sql.Rows
-	var err error
-	if action == "returning" {
-		rows, err = db.Query("SELECT name, lat, lon, dock_count FROM stations WHERE dock_count > 0")
-	} else {
-		rows, err = db.Query("SELECT name, lat, lon, bike_count FROM stations WHERE bike_count > 0")
-	}
+	rows, err := db.Query("SELECT name, lat, lon, dock_count, bike_count FROM stations WHERE dock_count > 0 OR bike_count > 0")
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
@@ -29,12 +19,7 @@ func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) 
 	var stations []Station
 	for rows.Next() {
 		var station Station
-		var err error
-		if action == "returning" {
-			err = rows.Scan(&station.Name, &station.Lat, &station.Lon, &station.DockCount)
-		} else {
-			err = rows.Scan(&station.Name, &station.Lat, &station.Lon, &station.BikeCount)
-		}
+		err := rows.Scan(&station.Name, &station.Lat, &station.Lon, &station.DockCount, &station.BikeCount)
 		if err != nil {
 			defer handleHttpError(w, err)
 			return
@@ -43,30 +28,26 @@ func (s StationsController) ListClosest(w http.ResponseWriter, r *http.Request) 
 		stations = append(stations, station)
 	}
 
-	lat, err := strconv.ParseFloat(params.Get("lat"), 64)
+	params := r.URL.Query()
+	latitude, err := strconv.ParseFloat(params.Get("latitude"), 64)
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
 	}
 
-	lon, err := strconv.ParseFloat(params.Get("lon"), 64)
+	longitude, err := strconv.ParseFloat(params.Get("longitude"), 64)
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
 	}
 
 	for i, station := range stations {
-		stations[i].Distance = Haversine(lat, lon, station.Lat, station.Lon)
+		stations[i].Distance = Haversine(latitude, longitude, station.Lat, station.Lon)
 	}
 	slices.SortFunc(stations, func(a Station, b Station) int { return a.Distance - b.Distance })
 
-	tmpl, err := template.ParseFiles("closest-stations.html")
-	if err != nil {
-		defer handleHttpError(w, err)
-		return
-	}
-
-	tmpl.Execute(w, struct{ Stations []Station }{Stations: stations[:min(5, len(stations))]})
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(stations[:5])
 	if err != nil {
 		defer handleHttpError(w, err)
 		return
