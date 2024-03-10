@@ -4,25 +4,26 @@
 	    <meta charset="UTF-8">
 	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	    <style>
-	        body {
-	            font-family: sans-serif;
-		    display: flex;
-		    flex-direction: column;
-		    align-items: center;
-		    gap: 1rem;
-	        }
+		body {
+			font-family: sans-serif;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 1rem;
+		}
 		#map {
 			height: 20rem;
 			width: 20rem;
+			background-color: #e3e3e3;
 		}
 		.station-pin {
-		font-weight: bolder;
-		font-size: x-small;
-		padding: 6px;
-		border-radius: 50%;
-		background-color: white;
-		border: 2px solid black;
-		text-align: center;
+			font-weight: bolder;
+			font-size: x-small;
+			padding: 6px;
+			border-radius: 50%;
+			background-color: white;
+			border: 2px solid black;
+			text-align: center;
 		}
 	    </style>
 	    <link rel="stylesheet" href="/files/leaflet.css"/>
@@ -30,7 +31,7 @@
 	    <link rel="icon" href="/files/velib.png" /> 
 	</head>
 	<body>
-		<script src="/files/leaflet.js"></script>
+		<script type="module" src="/files/leaflet.js"></script>
 	        <h1>Velib</h1>
 	        <fieldset>
 	            <legend >I'm :</legend>
@@ -41,63 +42,66 @@
 	        </fieldset>
 		<button id="refresh-btn">refresh</button>
 		<div class="map-container"> <div id="map"></div>
+		<script type="module">
+			let map = null,
+			parisLatLon = [48.864716, 2.349014],
+			stations = [],
+			stationsLayer = L.layerGroup(),
+			position = [],
+			positionLayer = L.marker(),
+			returning = document.getElementById("returning"),
+			searching = document.getElementById("searching"),
+			refresh = document.getElementById("refresh-btn")
+		
+			const fetch = () => {
+					let xhr = new XMLHttpRequest()
+					xhr.open("GET", `/stations/closest?latitude=${position[0]}&longitude=${position[1]}`)
+					xhr.onload = () => {
+						stations = JSON.parse(xhr.response)
+						localMap()
+					}
+					xhr.send()
+				}	
+
+			const initMap = () => {
+				map = L.map('map', {
+					center: parisLatLon,
+				})
+				L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					minZoom: 11,
+					attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				}).addTo(map)
+			}
+
+			const localMap = () => {
+				let action = returning.checked ? "returning": "searching"
+
+				stationsLayer.clearLayers()
+				positionLayer.remove()
+
+				map.setView(position, 15)
+				positionLayer = L.marker(position, {icon: L.icon({iconUrl: '/files/pin.png', iconSize: [32, 32]})})
+				stations.forEach((station) =>  stationsLayer.addLayer(L.marker([station.Lat, station.Lon], {icon: L.divIcon({html: `<div>${action==="returning"? station.numDocksAvailable: station.numBikesAvailable}</div>`, className:"station-pin"})})))
+
+				positionLayer.addTo(map)
+				stationsLayer.addTo(map)
+			}
+
+			const getPosition = () => {
+				refresh.disabled = true
+				navigator.geolocation.getCurrentPosition((pos)=> {
+					position = [pos.coords.latitude, pos.coords.longitude]
+					fetch()
+					refresh.disabled = false
+					}, (err) => err.code === 3 && getPosition(), { enableHighAccuracy: true, timeout: 3000 })
+			}
+
+			refresh.addEventListener("click", getPosition)
+			returning.addEventListener("change",!refresh.disabled && localMap) 
+			searching.addEventListener("change",!refresh.disabled && localMap) 
+				
+			initMap()	
+			getPosition()
+		</script>
 	</body>
-	<script>
-		let map = null,
-		 parisLatLon = [48.864716, 2.349014],
-		stations = [],
-		position = [],
-		returning = document.getElementById("returning"),
-		searching = document.getElementById("searching"),
-		refresh = document.getElementById("refresh-btn")
-
- 		const fetch = () => {
-				let xhr = new XMLHttpRequest()
-				xhr.open("GET", `/stations/closest?latitude=${position[0]}&longitude=${position[1]}`)
-				xhr.onload = () => {
-					stations = JSON.parse(xhr.response)
-					localMap()
-				}
-				xhr.send()
-			}	
-
-		const initMap = () => {
-			map = L.map('map', {
-    				center: parisLatLon,
-    				zoom: 11
-			})
-			L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		    		maxZoom: 19,
-		    		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-			}).addTo(map)
-		}
-
-		const localMap = () => {
-			let action = returning.checked ? "returning": "searching"
-			map.setView(position, 15)
-			L.marker(position, {icon: L.icon({
-		    						iconUrl: '/files/pin.png',
-		    						iconSize: [32, 32]
-								})
-							}
-				).addTo(map)
-			stations.forEach((station) =>  L.marker([station.Lat, station.Lon], {icon: L.divIcon({html: `<div>${action==="returning"? station.numDocksAvailable: station.numBikesAvailable}</div>`, className:"station-pin"})}).addTo(map))
-		}
-
-		const getPosition = () => {
-			refresh.disabled = true
-			navigator.geolocation.getCurrentPosition((pos)=> {
-				position = [pos.coords.latitude, pos.coords.longitude]
-			    	fetch()
-			    	refresh.disabled = false
-				}, (err) => err.code === 3 && getPosition(), { enableHighAccuracy: true, timeout: 3000 })
-		}
-
-		refresh.addEventListener("click", getPosition)
-		returning.addEventListener("change",!refresh.disabled && localMap) 
-		searching.addEventListener("change",!refresh.disabled && localMap) 
-			
-		initMap()	
-		getPosition()
-	</script>
 </html>
