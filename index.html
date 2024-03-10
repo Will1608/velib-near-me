@@ -43,8 +43,8 @@
 		<button id="refresh-btn">refresh</button>
 		<div class="map-container"> <div id="map"></div>
 		<script type="module">
-			let map = null,
-			parisLatLon = [48.864716, 2.349014],
+			let parisLatLon = [48.864716, 2.349014],
+			map = L.map('map').setView(parisLatLon, 11),
 			stations = [],
 			stationsLayer = L.layerGroup(),
 			position = [],
@@ -64,9 +64,6 @@
 				}	
 
 			const initMap = () => {
-				map = L.map('map', {
-					center: parisLatLon,
-				})
 				L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 					minZoom: 11,
 					attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
