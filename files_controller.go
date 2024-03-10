@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +21,7 @@ func (c *FilesController) Show(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		defer handleHttpError(w, errors.New("unrecongnized filename"))
+		defer handleHttpError(w, errors.New(fmt.Sprintf("unrecongnized filename: %s", filename)))
 		return
 	}
 
